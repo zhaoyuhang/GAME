@@ -1,0 +1,97 @@
+<!--
+作者：赵宇航&江昊琛
+创建日期：2016.7.4
+基于babylon.js引擎的web前端游戏
+注意：编辑时请注意保持代码风格完好
+-->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="utf-8"/>
+    <title>test</title>
+    <!-- link to the last version of babylon -->
+    <!--
+    <script src="http://cdn.babylonjs.com/2-4/babylon.js"></script>
+    -->
+    <script src="babylon.2.4.js"></script>
+    <script src="Oimo.js"></script>
+    <script src="cannon.js"></script>
+    <style>
+        html, body {
+            overflow: hidden;
+            width   : 100%;
+            height  : 100%;
+            margin  : 0;
+            padding : 0;
+        }
+
+        #renderCanvas {
+            width   : 100%;
+            height  : 100%;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+        window.addEventListener('DOMContentLoaded', function(){
+            // get the canvas DOM element
+            var canvas = document.getElementById('renderCanvas');
+
+            // load the 3D engine
+            var engine = new BABYLON.Engine(canvas, true);
+
+            // createScene function that creates and return the scene
+            var createScene = function(){
+                // create a basic BJS Scene object
+                var scene = new BABYLON.Scene(engine);
+
+                // create a FreeCamera, and set its position to (x:0, y:5, z:-10)
+                var camera = new BABYLON.FreeCamera('camera1', new BABYLON.Vector3(0, 5,-10), scene);
+
+                // target the camera to scene origin
+                camera.setTarget(BABYLON.Vector3.Zero());
+
+                // attach the camera to the canvas
+                camera.attachControl(canvas, false);
+
+                // create a basic light, aiming 0,1,0 - meaning, to the sky
+                var light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0,1,0), scene);
+
+                // create a built-in "sphere" shape; its constructor takes 5 params: name, width, depth, subdivisions, scene
+                var sphere1 = BABYLON.Mesh.CreateSphere('sphere1', 16, 2, scene);
+                var sphere2 = BABYLON.Mesh.CreateSphere("Sphere2", 2.0, 1, scene);
+    			var sphere3 = BABYLON.Mesh.CreateSphere("Sphere3", 10.0, 3, scene);
+
+    			var materialSphere1 = new BABYLON.StandardMaterial("texture1", scene);
+    			sphere1.material = materialSphere1;
+    			materialSphere1.alpha = 0.5;
+                // move the sphere upward 1/2 of its height
+                sphere1.position.y = 1;
+                sphere2.position.x = -7;
+    			sphere3.position.x = 3;
+
+                // create a built-in "ground" shape; its constructor takes the same 5 params as the sphere's one
+                var ground = BABYLON.Mesh.CreateGround('ground1', 6, 6, 2, scene);
+
+                // return the created scene
+                return scene;
+            }
+
+            // call the createScene function
+            var scene = createScene();
+
+            // run the render loop
+            engine.runRenderLoop(function(){
+                scene.render();
+            });
+
+            // the canvas/window resize event handler
+            window.addEventListener('resize', function(){
+                engine.resize();
+            });
+        });
+    </script>
+</body>
+</html>
