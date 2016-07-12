@@ -18,7 +18,9 @@
     <script src="Oimo.js"></script>
     <script src="cannon.js"></script>
     <script src="poly2tri.js"></script>
-     <script src="http://www.babylonjs.com/hand.minified-1.2.js"></script>
+    <script src="babylon.objFileLoader.js"></script>
+    <script src="http://www.babylonjs.com/hand.minified-1.2.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/index.css"/>
 
     <style>
         html, body {
@@ -39,7 +41,19 @@
 <body>
     <canvas id="renderCanvas"></canvas>
     <script>
-        var status;
+       function start(difficulty){
+        var elementOne = document.getElementById("game-title");
+        var elementTwo = document.getElementById("easy");
+        var elementThree = document.getElementById("normal");
+        var elementFour = document.getElementById("difficult");
+        elementOne.style.display = "none";
+        elementTwo.style.display = "none";
+        elementThree.style.display = "none";
+        elementFour.style.display = "none";
+        //加载模型方法
+
+        var status =  difficulty;
+        var times = 1;
         //速度变化率
         var dspeed = 1;
         //速度
@@ -79,28 +93,28 @@
         var myposition = new BABYLON.Vector3(0,0,0);
         var camerarotation = new BABYLON.Vector3(0,0,0);
 
-        window.addEventListener('DOMContentLoaded', function(){
-            // get the canvas DOM element
-            status = 1;
-            var canvas = document.getElementById('renderCanvas');
 
+
+        //window.addEventListener('DOMContentLoaded', function(){
+
+          
+        
+
+            // get the canvas DOM element
+           
+            canvas = document.getElementById('renderCanvas');
             // load the 3D engine
-            var engine = new BABYLON.Engine(canvas, true);
+            engine = new BABYLON.Engine(canvas, true);
 
             // createScene function that creates and return the scene
-            var createScene = function(){
-                // create a basic BJS Scene object
-                var scene = new BABYLON.Scene(engine);
-
-                
-                var light = new BABYLON.PointLight("Omni", new BABYLON.Vector3(10, 50, 50), scene);
-                
              
-               // console.log(fcamera);
-                //var material1 = new BABYLON.StandardMaterial("mat1", scene);
-                //material1.diffuseColor = new BABYLON.Color3(1, 1, 0);
+                scene = new BABYLON.Scene(engine);
+                light = new BABYLON.PointLight("Omni", new BABYLON.Vector3(10, 50, 50), scene);
+                //sphere_test_2 = BABYLON.Mesh.CreateBox("box",3.0,scene); 
 
-                 // Fog
+                loader = new BABYLON.AssetsManager(scene);
+                planes = loader.addMeshTask("plane", "", "scenes/", "plane.obj");
+
                 scene.fogMode = BABYLON.Scene.FOGMODE_EXP;
                 //BABYLON.Scene.FOGMODE_NONE;
                 //BABYLON.Scene.FOGMODE_EXP;
@@ -111,13 +125,13 @@
                 scene.fogDensity = 0;
 
                 // 天空的箱子（把相机处于一个大的箱子里面）
-                var skybox = BABYLON.Mesh.CreateBox("skyBox", 5000.0, scene);
+                skybox = BABYLON.Mesh.CreateBox("skyBox", 6000.0, scene);
                 //创建一个天空的材料
-                var skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+                skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
                 //背面效果
                 skyboxMaterial.backFaceCulling = false;
                 //反射的材质
-                skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/skybox", scene);
+                skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/TropicalSunnyDay", scene);
                 //坐标模式-天空盒子
                 skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
                 skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
@@ -125,45 +139,45 @@
                 //禁止照明
                 skyboxMaterial.disableLighting = true;
                 skybox.material = skyboxMaterial;
+                loader.load();
 
-                //场景部分加载完毕
-                var sphere_test = BABYLON.Mesh.CreateBox("box",3.0,scene)
-                sphere_test.position.x = sphere_test.position.y = sphere_test.position.z = 0;
+           
+                loader.onFinish = function() {
+                    console.log("loaded");
+                    init();
+                };
 
-
-/*
-                var fcamera = new BABYLON.FollowCamera("FollowCamera", sphere_test.position, scene);
-               
-                //fcamera.attachControl(canvas, true);
+            init = function(){
+                planes.loadedMeshes[1].scaling  = new BABYLON.Vector3(0.3,0.3,0.3);
+                //planes.loadedMeshes[1].rotation = new BABYLON.Vector3(0,45* (Math.PI/180),0);
+                sphere_test = planes.loadedMeshes[1];
+                console.log(sphere_test.position);
                 
-                fcamera.radius = 30; // How far from the object should the camera be.
-                fcamera.heightOffset = 9; // How high above the object should it be.
-                fcamera.rotationOffset = 180; // The camera's angle. here - from behind.
-                fcamera.cameraAcceleration = 0.05 // how fast to move
-                fcamera.maxCameraSpeed = 20 // speed limit
-*/
+                //sphere_test.scaling = new BABYLON.Vector3(0.3,0.3,0.3);
 
-                var fcamera = new BABYLON.ArcFollowCamera("FollowCamera", 270* (Math.PI/180) ,  20* (Math.PI/180) ,30, sphere_test, scene);
-               
-                //fcamera.target = sphere_test; 
-
+                fcamera = new BABYLON.ArcFollowCamera("FollowCamera", 180* (Math.PI/180) ,  20* (Math.PI/180) ,50, sphere_test ,scene);
                 scene.activeCamera = fcamera;
+                //sphere_test.rotation.y = 45* (Math.PI/180);
+                //fcamera.target = sphere_test;
+                //fcamera.target = sphere_test; 
 
                 //创建敌人
                 createEnemy(scene);
                 
                 //场景刷新
-                 scene.registerBeforeRender(function(){
+                scene.registerBeforeRender(function(){
                    
                     //飞机和摄像头的旋转
                     
                     a_flag +=  dspeed * (right_flag + left_flag) ;
-                    b_flag += dspeed *(down_flag + up_flag);
+                    if(a_flag % 180 == 0 ){a_flag++;}
+                    b_flag += dspeed * (down_flag + up_flag);
+                    if(b_flag == -36){b_flag++;}
 
                     sphere_test.rotation = new BABYLON.Vector3(
-                        b_flag * Math.PI/180, 
+                       0,
                         a_flag * Math.PI/180 ,
-                        0 
+                        -b_flag * Math.PI/180 
                     );
 
                     myrotation = sphere_test.rotation;
@@ -171,19 +185,19 @@
                     // console.log(sphere_test.position);
 
                     v = new BABYLON.Vector3(
-                        speed*Math.sin(sphere_test.rotation.y)*Math.cos(sphere_test.rotation.x),
-                        -Math.sin(sphere_test.rotation.x),
-                        speed*Math.cos(sphere_test.rotation.y)*Math.cos(sphere_test.rotation.x)
+                        speed*Math.cos(sphere_test.rotation.y)*Math.cos(sphere_test.rotation.z),
+                        Math.sin(sphere_test.rotation.z),
+                        -speed*Math.sin(sphere_test.rotation.y)*Math.cos(sphere_test.rotation.z)
                         );
 
                     sphere_test.position.x += v.x;
                     sphere_test.position.y += v.y;
                     sphere_test.position.z += v.z;
                     
-                    fcamera.alpha = 270* (Math.PI/180) -  a_flag * Math.PI/180;
+                    fcamera.alpha = 180* (Math.PI/180) -  a_flag * Math.PI/180;
                     fcamera.beta =  20* (Math.PI/180) + b_flag * Math.PI/180;
                     
-                    //敌人、子弹、爆炸
+                     //敌人、子弹、爆炸
                     for (var i = 0; i < numOfBullets; i++)
                     {
                         bullet[i].position.x += bulletSpeed[i].x;
@@ -216,7 +230,6 @@
                         particleTimer[i]--;
                         if (particleTimer[i] <= 0)
                         {
-                            console.log("stop");
                             particleSystemAlive[i].stop();
                             destroyParticleSystem(i);
                         }                       
@@ -246,6 +259,7 @@
                                     console.log(enemyPlane[j]);
                                     destroyEnemy(j);
                                     numOfAliveSystem++;
+                                    //boomSound.play();
                                 }
                             }
                         }
@@ -256,38 +270,72 @@
                                 console.log("hit");
                                 bullet[i].visibility = 0;
                                 destroyBullet(0, i);
-                                enemyHP[j]--;
                                 enemyBullet[j].visibility = 0;
                                 destroyBullet(1, j);
                             }
                         }
                     }
                     
-                    for (var i = 0; i < numOfBullets; i++)
+                    for (var i = 0; i < numOfEnemyBullets; i++)
                     {
-                        if ((bullet[i].position.x > maxX) || (bullet[i].position.y > maxY) || (bullet[i].position.z > maxZ) ||
-                        (bullet[i].position.x < -maxX) || (bullet[i].position.y < -maxY) || (bullet[i].position.z < -maxZ))
+                        if ((enemyBullet[i].position.x > maxX) || (enemyBullet[i].position.y > maxY) || (enemyBullet[i].position.z > maxZ) ||
+                        (enemyBullet[i].position.x < -maxX) || (enemyBullet[i].position.y < -maxY) || (enemyBullet[i].position.z < -maxZ))
                         {
-                            bullet[i].visibility = 0;
-                            destroyBullet(0, i);
+                            enemyBullet[i].visibility = 0;
+                            destroyBullet(1, i);
+                        }
+                        if (sphere_test.intersectsMesh(enemyBullet[i], false))
+                        {
+                            hp -= 5;
+                            enemyBullet[i].visibility = 0;
+                            destroyBullet(1, i);
                         }
                     }
 
+                   for (var i = 0; i < numOfEnemy; i++)
+                   {
+                        if (sphere_test.intersectsMesh(enemyPlane[i], true))
+                        {
+                            if (times == 1)
+                            {
+                                times = 0;
+                                break;
+                            }
+                            else
+                            {
+                                console.log("plane" + i + "hit");
+                                console.log(sphere_test.position);
+                                console.log(enemyPlane[i].position);
+                                hp -= 100;
+                                enemyPlane[i].visibility = 0;
+                                destroyEnemy(i);
+                            }
+                        }
+                   }
                    
+                   if (hp <= 0)
+                   {
+                        status = 100;
+                        particleSystemAlive[numOfAliveSystem] = particleObject(sphere_test, scene);
+                        particleTimer[numOfAliveSystem] = 20;
+                        numOfAliveSystem++;
+                        sphere_test.visibility = 0;
+                        elementOne.innerText = "Game Over";
+                        elementOne.style.display = "block";
+                   }
                  });
-                return scene;
+                    //调试工具
+                    //scene.debugLayer.show();
+
+                    // run the render loop
+                    engine.runRenderLoop(function(){
+                        scene.render();
+                    });
+
+
             }
 
-            // call the createScene function
-            var scene = createScene();
-            scene.debugLayer.show();
 
-            // run the render loop
-            engine.runRenderLoop(function(){
-                scene.render();
-            });
-
-            // the canvas/window resize event handler
             window.addEventListener('resize', function(){
                 engine.resize();
             });
@@ -307,6 +355,7 @@
                             
                               break;
                           case "W":
+                          
                             up_flag = 0;
                             
                               break;
@@ -319,32 +368,39 @@
             }
 
             document.onkeydown = function(e){
+                if (status == 100)
+                 {
+                    location.reload();
+                 }
                  var keywhich = e.which;
                  var keyChar = String.fromCharCode(keywhich);
                 switch (keyChar){
               case "D":
                 //console.log(myrotation);
-                right_flag += 3 ;
+                right_flag = 3 ;
                 console.log(myrotation);
                 console.log(myposition);
                 //console.log()
                   break;
               case "A":
                 //console.log(myrotation);
-                left_flag -= 3 ;
+                
+                left_flag = -3 ;
                  console.log(myrotation);
                  console.log(myposition);
 
                
                   break;
               case "W":
-                up_flag -= 3;
+              if( down_flag + up_flag  > -70)
+                up_flag = -3;
                  console.log(myrotation);
                  console.log(myposition);
                //cube01.position.y += 1;
                   break;
               case "S":
-                down_flag += 3;
+               if( down_flag + up_flag < 50)
+                down_flag = 3;
                  console.log(myrotation);
                  console.log(myposition);
                 //cube01.position.y -= 1;
@@ -358,14 +414,17 @@
 
                  break;
               case "P":
+                    console.log("v:");
                     console.log(v);
+                    console.log(a_flag);
+                    console.log(b_flag);
 
                 //cube01.position.y -= 1;
                   break;
               case "U":
                 //cube01.position.y -= 1;
                 console.log("speed up");
-                if(speed < 5)
+                if(speed < 8)
                     speed +=  0.5; 
                 console.log(speed);
                   break;
@@ -407,7 +466,7 @@
             {
                 for (var i = index + 1; i < numOfEnemy; i++)
                 {
-                    enemy[i - 1] = enemy[i];
+                    enemyPlane[i - 1] = enemyPlane[i];
                     enemySpeed[i - 1] = enemySpeed[i];
                     enemyHP[i - 1] = enemyHP[i];
                 }
@@ -456,19 +515,21 @@
                     var speedY = newBullet.position.y - myposition.y;
                     var speedZ = newBullet.position.z - myposition.z;
                     var distance = Math.sqrt(speedX * speedX + speedY * speedY + speedZ * speedZ);
-                    var newBulletSpeed = new BABYLON.Vector3(speedX / distance + Math.random(), speedY / distance + Math.random(), speedZ / distance + Math.random());
+                    //var newBulletSpeed = new BABYLON.Vector3(speedX / distance + 2 * Math.random() - 1, speedY / distance + 2 * Math.random() - 1, speedZ / distance + Math.random());
+                    var newBulletSpeed = new BABYLON.Vector3(speedX / distance, speedY / distance, speedZ / distance);
                     enemyBulletSpeed[numOfEnemyBullets] = newBulletSpeed;
                     numOfEnemyBullets++;
                 }
             }
             
-            function createEnemy(scene)
+            function createEnemy(scene, x, y, z, hp)
             {
                 var enemy_test = BABYLON.MeshBuilder.CreateSphere("sphere",{diameter:2},scene);
-                enemy_test.position.y = enemy_test.x = 0;
-                enemy_test.position.z = 500;
-                enemyPlane[0] = enemy_test;
-                enemyHP[0] = 1;
+                enemy_test.position.x = x;
+                enemy_test.position.y = y;
+                enemy_test.position.z = z;
+                enemyPlane[numOfEnemy] = enemy_test;
+                enemyHP[numOfEnemy] = hp;
                 var newEnemySpeed = new BABYLON.Vector3(0, 0, 0);
                 enemySpeed[numOfEnemy] = newEnemySpeed;
                 enemyTimer[numOfEnemy] = parseInt(100 * Math.random());
@@ -527,9 +588,14 @@
                 particleSystem.start();
                 
                 return particleSystem;
-            }
+                }
             
-        });
+        //});
+    }
     </script>
+    <div id="game-title">MegaPlane</div>
+    <div id="easy" onclick="start(1)">Easy</div>
+    <div id="normal" onclick="start(2)">Normal</div>
+    <div id="difficult" onclick="start(3)">Difficult</div>
 </body>
 </html>

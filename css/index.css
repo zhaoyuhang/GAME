@@ -1,0 +1,57 @@
+div#game-title
+{
+	position:absolute;
+	top:15%;
+	left:31%;
+	text-align:center;
+	font-family:Futura, "Trebuchet MS", Arial, sans-serif;
+	font-size:800%
+}
+
+div#easy
+{
+	position:absolute;
+	top:40%;
+	left:40%;
+	text-align:center;
+	font-family:Futura, "Trebuchet MS", Arial, sans-serif;
+	border:2px solid #a1a1a1;
+	padding:1% 4%; 
+	background:#dddddd;
+	width:11%;
+	border-radius:25px;
+	-moz-border-radius:25px;
+	font-size:100%;
+}
+
+div#normal
+{
+	position:absolute;
+	top:60%;
+	left:40%;
+	text-align:center;
+	font-family:Futura, "Trebuchet MS", Arial, sans-serif;
+	border:2px solid #a1a1a1;
+	padding:1% 4%; 
+	background:#dddddd;
+	width:11%;
+	border-radius:25px;
+	-moz-border-radius:25px;
+	font-size:100%;
+}
+
+div#difficult
+{
+	position:absolute;
+	top:80%;
+	left:40%;
+	text-align:center;
+	font-family:Futura, "Trebuchet MS", Arial, sans-serif;
+	border:2px solid #a1a1a1;
+	padding:1% 4%; 
+	background:#dddddd;
+	width:11%;
+	border-radius:25px;
+	-moz-border-radius:25px;
+	font-size:100%;
+}
