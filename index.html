@@ -17,6 +17,7 @@
     <script src="Oimo.js"></script>
     <script src="cannon.js"></script>
     <script src="poly2tri.js"></script>
+     <script src="http://www.babylonjs.com/hand.minified-1.2.js"></script>
 
     <style>
         html, body {
@@ -37,8 +38,15 @@
 <body>
     <canvas id="renderCanvas"></canvas>
     <script>
+        var status;
+        //速度
+        var speed = 1;
+        var hp = 100;
+         
+
         window.addEventListener('DOMContentLoaded', function(){
             // get the canvas DOM element
+            status = 1;
             var canvas = document.getElementById('renderCanvas');
 
             // load the 3D engine
@@ -49,40 +57,83 @@
                 // create a basic BJS Scene object
                 var scene = new BABYLON.Scene(engine);
 
-                // create a FreeCamera, and set its position to (x:0, y:5, z:-10)
-                var camera = new BABYLON.FreeCamera('camera1', new BABYLON.Vector3(0, 5,-10), scene);
-
-                // target the camera to scene origin
-                camera.setTarget(BABYLON.Vector3.Zero());
-
+                
+                var light = new BABYLON.PointLight("Omni", new BABYLON.Vector3(10, 50, 50), scene);
+                
+               
+                var fcamera = new BABYLON.FollowCamera("FollowCam", new BABYLON.Vector3(-10, 10, 0), scene);
                 // attach the camera to the canvas
-                camera.attachControl(canvas, false);
+                fcamera.attachControl(canvas, true);
+                scene.activeCamera = fcamera;
+                console.log(fcamera);
+                //var material1 = new BABYLON.StandardMaterial("mat1", scene);
+                //material1.diffuseColor = new BABYLON.Color3(1, 1, 0);
 
-                // create a basic light, aiming 0,1,0 - meaning, to the sky
-                var light = new BABYLON.HemisphericLight('light1', new BABYLON.Vector3(0,1,0), scene);
+                 // Fog
+                scene.fogMode = BABYLON.Scene.FOGMODE_EXP;
+                //BABYLON.Scene.FOGMODE_NONE;
+                //BABYLON.Scene.FOGMODE_EXP;
+                //BABYLON.Scene.FOGMODE_EXP2;
+                //BABYLON.Scene.FOGMODE_LINEAR;
+            
+                scene.fogColor = new BABYLON.Color3(0.9, 0.9, 0.85);
+                scene.fogDensity = 0;
+            
+                //Only if LINEAR
+                //scene.fogStart = 20.0;
+                //scene.fogEnd = 60.0;
 
-                // create a built-in "sphere" shape; its constructor takes 5 params: name, width, depth, subdivisions, scene
-                var sphere1 = BABYLON.Mesh.CreateSphere('sphere1', 16, 2, scene);
-                var sphere2 = BABYLON.Mesh.CreateSphere("Sphere2", 2.0, 1, scene);
-    			var sphere3 = BABYLON.Mesh.CreateSphere("Sphere3", 10.0, 3, scene);
-
-    			var materialSphere1 = new BABYLON.StandardMaterial("texture1", scene);
-    			sphere1.material = materialSphere1;
-    			materialSphere1.alpha = 0.5;
-                // move the sphere upward 1/2 of its height
-                sphere1.position.y = 1;
-                sphere2.position.x = -7;
-    			sphere3.position.x = 3;
+                // 天空的箱子（把相机处于一个大的箱子里面）
+                var skybox = BABYLON.Mesh.CreateBox("skyBox", 2000.0, scene);
+                //创建一个天空的材料
+                var skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+                //背面效果
+                skyboxMaterial.backFaceCulling = false;
+                //反射的材质
+                skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/skybox", scene);
+                //坐标模式-天空盒子
+                skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+                skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+                skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+                //禁止照明
+                skyboxMaterial.disableLighting = true;
+                skybox.material = skyboxMaterial;
 
                 // create a built-in "ground" shape; its constructor takes the same 5 params as the sphere's one
-                var ground = BABYLON.Mesh.CreateGround('ground1', 6, 6, 2, scene);
+                //var ground = BABYLON.Mesh.CreateGround('ground1', 60, 60, -1, scene);
+                //场景部分加载完毕
+                var sphere_test = BABYLON.Mesh.CreateSphere("sphere",3.0 ,3.0,scene)
+                sphere_test.position.x = sphere_test.position.y = sphere_test.z = 0;
+                fcamera.target = sphere_test; 
+                fcamera.radius = 3; // How far from the object should the camera be.
+                fcamera.heightOffset = 3; // How high above the object should it be.
 
-                // return the created scene
+                
+               
+
+                 sphere_test.actionManager = new BABYLON.ActionManager(scene);
+               
+
+
+                
+                 scene.registerBeforeRender(function(){
+                    v = new BABYLON.Vector3(speed,0,0);
+                    sphere_test.position.x += v.x;
+                    sphere_test.position.y += v.y;
+                    sphere_test.position.z += v.z;
+
+                   
+                    console.log(v);
+                    //console.log(sphere_test.position);
+                    //console.log(fcamera.position);
+                   
+                 });
                 return scene;
             }
 
             // call the createScene function
             var scene = createScene();
+            scene.debugLayer.show();
 
             // run the render loop
             engine.runRenderLoop(function(){
@@ -93,6 +144,50 @@
             window.addEventListener('resize', function(){
                 engine.resize();
             });
+
+            document.onkeydown = function(e){
+                 var keywhich = e.which;
+                 var keyChar = String.fromCharCode(keywhich);
+                switch (keyChar){
+              case "D":
+                console.log("press D");
+                  break;
+              case "A":
+                //cube01.position.x -= 1;
+                  break;
+              case "W":
+               //cube01.position.y += 1;
+                  break;
+              case "S":
+                //cube01.position.y -= 1;
+                  break;
+              case "J":
+                //cube01.position.y -= 1;
+                  break;
+              case "K":
+                //cube01.position.y -= 1;
+                  break;
+              case "U":
+                //cube01.position.y -= 1;
+                console.log("speed up");
+                if(speed <10)
+                    speed +=  0.5; 
+                console.log(speed);
+                  break;
+              case "I":
+                //cube01.position.y -= 1;
+                console.log("speed down");
+                if(speed > 1)
+                    speed -=  0.5; 
+                console.log(speed); 
+                  break;
+              default:
+                  break;
+                 }
+             };
+        
+
+            
         });
     </script>
 </body>
