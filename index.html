@@ -4,6 +4,7 @@
 基于babylon.js引擎的web前端游戏
 注意：编辑时请注意保持代码风格完好
 -->
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -39,10 +40,44 @@
     <canvas id="renderCanvas"></canvas>
     <script>
         var status;
+        //速度变化率
+        var dspeed = 1;
         //速度
         var speed = 1;
         var hp = 100;
-         
+        //旋转用flag
+        var a_flag = 0;
+        var b_flag = 0;
+        var down_flag = 0;
+        var up_flag = 0;
+        var left_flag = 0;
+        var right_flag = 0;
+        //子弹消失判定
+        var maxX = 10000;
+        var maxY = 10000;
+        var maxZ = 10000;
+       // var speed = 1;
+        var v = new BABYLON.Vector3(0,0,speed);
+        var hp = 100;
+        var bullet = new Array();
+        var bulletSpeed = new Array();
+        var numOfBullets = 0;
+        var enemyPlane = new Array();
+        var enemySpeed = new Array();
+        var enemyHP = new Array();
+        var numOfEnemy = 0;
+        var enemyBullet = new Array();
+        var numOfEnemyBullets = 0;
+        var enemyTimer = new Array();
+        var enemyBulletSpeed = new Array();
+       // var myPlanePosition = new Array(3);
+        var particleSystemAlive = new Array();
+        var particleTimer = new Array();
+        var numOfAliveSystem = 0;
+
+        var myrotation = new BABYLON.Vector3(0,0,0);
+        var myposition = new BABYLON.Vector3(0,0,0);
+        var camerarotation = new BABYLON.Vector3(0,0,0);
 
         window.addEventListener('DOMContentLoaded', function(){
             // get the canvas DOM element
@@ -60,12 +95,8 @@
                 
                 var light = new BABYLON.PointLight("Omni", new BABYLON.Vector3(10, 50, 50), scene);
                 
-               
-                var fcamera = new BABYLON.FollowCamera("FollowCam", new BABYLON.Vector3(-10, 10, 0), scene);
-                // attach the camera to the canvas
-                fcamera.attachControl(canvas, true);
-                scene.activeCamera = fcamera;
-                console.log(fcamera);
+             
+               // console.log(fcamera);
                 //var material1 = new BABYLON.StandardMaterial("mat1", scene);
                 //material1.diffuseColor = new BABYLON.Color3(1, 1, 0);
 
@@ -78,13 +109,9 @@
             
                 scene.fogColor = new BABYLON.Color3(0.9, 0.9, 0.85);
                 scene.fogDensity = 0;
-            
-                //Only if LINEAR
-                //scene.fogStart = 20.0;
-                //scene.fogEnd = 60.0;
 
                 // 天空的箱子（把相机处于一个大的箱子里面）
-                var skybox = BABYLON.Mesh.CreateBox("skyBox", 2000.0, scene);
+                var skybox = BABYLON.Mesh.CreateBox("skyBox", 5000.0, scene);
                 //创建一个天空的材料
                 var skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
                 //背面效果
@@ -99,33 +126,153 @@
                 skyboxMaterial.disableLighting = true;
                 skybox.material = skyboxMaterial;
 
-                // create a built-in "ground" shape; its constructor takes the same 5 params as the sphere's one
-                //var ground = BABYLON.Mesh.CreateGround('ground1', 60, 60, -1, scene);
                 //场景部分加载完毕
-                var sphere_test = BABYLON.Mesh.CreateSphere("sphere",3.0 ,3.0,scene)
-                sphere_test.position.x = sphere_test.position.y = sphere_test.z = 0;
-                fcamera.target = sphere_test; 
-                fcamera.radius = 3; // How far from the object should the camera be.
-                fcamera.heightOffset = 3; // How high above the object should it be.
+                var sphere_test = BABYLON.Mesh.CreateBox("box",3.0,scene)
+                sphere_test.position.x = sphere_test.position.y = sphere_test.position.z = 0;
 
-                
+
+/*
+                var fcamera = new BABYLON.FollowCamera("FollowCamera", sphere_test.position, scene);
                
-
-                 sphere_test.actionManager = new BABYLON.ActionManager(scene);
-               
-
-
+                //fcamera.attachControl(canvas, true);
                 
+                fcamera.radius = 30; // How far from the object should the camera be.
+                fcamera.heightOffset = 9; // How high above the object should it be.
+                fcamera.rotationOffset = 180; // The camera's angle. here - from behind.
+                fcamera.cameraAcceleration = 0.05 // how fast to move
+                fcamera.maxCameraSpeed = 20 // speed limit
+*/
+
+                var fcamera = new BABYLON.ArcFollowCamera("FollowCamera", 270* (Math.PI/180) ,  20* (Math.PI/180) ,30, sphere_test, scene);
+               
+                //fcamera.target = sphere_test; 
+
+                scene.activeCamera = fcamera;
+
+                //创建敌人
+                createEnemy(scene);
+                
+                //场景刷新
                  scene.registerBeforeRender(function(){
-                    v = new BABYLON.Vector3(speed,0,0);
+                   
+                    //飞机和摄像头的旋转
+                    
+                    a_flag +=  dspeed * (right_flag + left_flag) ;
+                    b_flag += dspeed *(down_flag + up_flag);
+
+                    sphere_test.rotation = new BABYLON.Vector3(
+                        b_flag * Math.PI/180, 
+                        a_flag * Math.PI/180 ,
+                        0 
+                    );
+
+                    myrotation = sphere_test.rotation;
+                    myposition = sphere_test.position;
+                    // console.log(sphere_test.position);
+
+                    v = new BABYLON.Vector3(
+                        speed*Math.sin(sphere_test.rotation.y)*Math.cos(sphere_test.rotation.x),
+                        -Math.sin(sphere_test.rotation.x),
+                        speed*Math.cos(sphere_test.rotation.y)*Math.cos(sphere_test.rotation.x)
+                        );
+
                     sphere_test.position.x += v.x;
                     sphere_test.position.y += v.y;
                     sphere_test.position.z += v.z;
+                    
+                    fcamera.alpha = 270* (Math.PI/180) -  a_flag * Math.PI/180;
+                    fcamera.beta =  20* (Math.PI/180) + b_flag * Math.PI/180;
+                    
+                    //敌人、子弹、爆炸
+                    for (var i = 0; i < numOfBullets; i++)
+                    {
+                        bullet[i].position.x += bulletSpeed[i].x;
+                        bullet[i].position.y += bulletSpeed[i].y;
+                        bullet[i].position.z += bulletSpeed[i].z;
+                    }
+                    
+                    for (var i = 0; i < numOfEnemy; i++)
+                    {
+                        enemyPlane[i].position.x += enemySpeed[i].x;
+                        enemyPlane[i].position.y += enemySpeed[i].y;
+                        enemyPlane[i].position.z += enemySpeed[i].z;
+                        enemyTimer[i]--;
+                        if (enemyTimer[i] <= 0)
+                        {
+                            createBullet(1, i);
+                            enemyTimer[i] = parseInt(100 * Math.random());
+                        }
+                    }
+                    
+                    for (var i = 0; i < numOfEnemyBullets; i++)
+                    {
+                        enemyBullet[i].position.x -= enemyBulletSpeed[i].x;
+                        enemyBullet[i].position.y -= enemyBulletSpeed[i].y;
+                        enemyBullet[i].position.z -= enemyBulletSpeed[i].z;
+                    }
+                    
+                    for (var i = 0; i < numOfAliveSystem; i++)
+                    {
+                        particleTimer[i]--;
+                        if (particleTimer[i] <= 0)
+                        {
+                            console.log("stop");
+                            particleSystemAlive[i].stop();
+                            destroyParticleSystem(i);
+                        }                       
+                    }
+                    
+                    for (var i = 0; i < numOfBullets; i++)
+                    {
+                        if ((bullet[i].position.x > maxX) || (bullet[i].position.y > maxY) || (bullet[i].position.z > maxZ) ||
+                        (bullet[i].position.x < -maxX) || (bullet[i].position.y < -maxY) || (bullet[i].position.z < -maxZ))
+                        {
+                            bullet[i].visibility = 0;
+                            destroyBullet(0, i);
+                        }
+                        for (var j = 0; j < numOfEnemy; j++)
+                        {
+                            if (bullet[i].intersectsMesh(enemyPlane[j], false))
+                            {
+                                console.log("hit");
+                                bullet[i].visibility = 0;
+                                destroyBullet(0, i);
+                                enemyHP[j]--;
+                                if (enemyHP[j] <= 0)
+                                {
+                                    particleSystemAlive[numOfAliveSystem] = particleObject(enemyPlane[j], scene);
+                                    particleTimer[numOfAliveSystem] = 20;
+                                    enemyPlane[j].visibility = 0;
+                                    console.log(enemyPlane[j]);
+                                    destroyEnemy(j);
+                                    numOfAliveSystem++;
+                                }
+                            }
+                        }
+                        for (var j = 0; j < numOfEnemyBullets; j++)
+                        {
+                            if (bullet[i].intersectsMesh(enemyBullet[j], false))
+                            {
+                                console.log("hit");
+                                bullet[i].visibility = 0;
+                                destroyBullet(0, i);
+                                enemyHP[j]--;
+                                enemyBullet[j].visibility = 0;
+                                destroyBullet(1, j);
+                            }
+                        }
+                    }
+                    
+                    for (var i = 0; i < numOfBullets; i++)
+                    {
+                        if ((bullet[i].position.x > maxX) || (bullet[i].position.y > maxY) || (bullet[i].position.z > maxZ) ||
+                        (bullet[i].position.x < -maxX) || (bullet[i].position.y < -maxY) || (bullet[i].position.z < -maxZ))
+                        {
+                            bullet[i].visibility = 0;
+                            destroyBullet(0, i);
+                        }
+                    }
 
-                   
-                    console.log(v);
-                    //console.log(sphere_test.position);
-                    //console.log(fcamera.position);
                    
                  });
                 return scene;
@@ -145,32 +292,80 @@
                 engine.resize();
             });
 
+            document.onkeyup = function(e){
+                   var keywhich = e.which;
+                             var keyChar = String.fromCharCode(keywhich);
+                            switch (keyChar){
+                          case "D":
+                            //console.log(myrotation);
+                            right_flag  = 0 ;
+                           
+                              break;
+                          case "A":
+                            //console.log(myrotation);
+                            left_flag = 0 ;
+                            
+                              break;
+                          case "W":
+                            up_flag = 0;
+                            
+                              break;
+                          case "S":
+                            down_flag = 0;
+                            
+                              break;
+                        default:break;
+                }
+            }
+
             document.onkeydown = function(e){
                  var keywhich = e.which;
                  var keyChar = String.fromCharCode(keywhich);
                 switch (keyChar){
               case "D":
-                console.log("press D");
+                //console.log(myrotation);
+                right_flag += 3 ;
+                console.log(myrotation);
+                console.log(myposition);
+                //console.log()
                   break;
               case "A":
-                //cube01.position.x -= 1;
+                //console.log(myrotation);
+                left_flag -= 3 ;
+                 console.log(myrotation);
+                 console.log(myposition);
+
+               
                   break;
               case "W":
+                up_flag -= 3;
+                 console.log(myrotation);
+                 console.log(myposition);
                //cube01.position.y += 1;
                   break;
               case "S":
+                down_flag += 3;
+                 console.log(myrotation);
+                 console.log(myposition);
                 //cube01.position.y -= 1;
                   break;
               case "J":
+                 console.log("bullet");
+                 createBullet(0);
                 //cube01.position.y -= 1;
                   break;
               case "K":
+
+                 break;
+              case "P":
+                    console.log(v);
+
                 //cube01.position.y -= 1;
                   break;
               case "U":
                 //cube01.position.y -= 1;
                 console.log("speed up");
-                if(speed <10)
+                if(speed < 5)
                     speed +=  0.5; 
                 console.log(speed);
                   break;
@@ -186,7 +381,153 @@
                  }
              };
         
-
+            function destroyBullet(type, index)
+            {
+                if (type == 0)
+                {
+                    for (var i = index + 1; i < numOfBullets; i++)
+                    {
+                        bullet[i - 1] = bullet[i];
+                        bulletSpeed[i - 1] = bulletSpeed[i];
+                    }
+                    numOfBullets--;
+                }
+                else if (type == 1)
+                {
+                    for (var i = index + 1; i < numOfEnemyBullets; i++)
+                    {
+                        enemyBullet[i - 1] = enemyBullet[i];
+                        enemyBulletSpeed[i - 1] = enemyBulletSpeed[i];
+                    }
+                    numOfEnemyBullets--;
+                }
+            }
+            
+            function destroyEnemy(index)
+            {
+                for (var i = index + 1; i < numOfEnemy; i++)
+                {
+                    enemy[i - 1] = enemy[i];
+                    enemySpeed[i - 1] = enemySpeed[i];
+                    enemyHP[i - 1] = enemyHP[i];
+                }
+                numOfEnemy--;
+            }
+            
+            function destroyParticleSystem(index)
+            {
+                for (var i = index + 1; i < numOfAliveSystem; i++)
+                {
+                    particleSystemAlive[i - 1] = particleSystemAlive[i];
+                    particleTimer[i - 1] = particleTimer[i];
+                }
+                numOfAliveSystem--;
+            }
+            
+            function createBullet(type, index)
+            {
+                if (type == 0)
+                {
+                    var faceColors = new Array(3);
+                    faceColors[0] = new BABYLON.Color4(1,1,0,1);
+                    faceColors[1] = new BABYLON.Color4(1,1,0,1);
+                    faceColors[2] = new BABYLON.Color4(1,1,0,1);
+                    var newBullet = BABYLON.MeshBuilder.CreateCylinder("cyl",{height:0.5, faceColors:faceColors, sideOrientation:1},scene);
+                    newBullet.position.x = myposition.x;
+                    newBullet.position.y = myposition.y;
+                    newBullet.position.z = myposition.z;
+                    bullet[numOfBullets] = newBullet;
+                    var newBulletSpeed = new BABYLON.Vector3(v.x + v.x * 2 / speed, v.y + v.y * 2 / speed, v.z + v.z * 2 / speed);
+                    bulletSpeed[numOfBullets] = newBulletSpeed;
+                    numOfBullets++;
+                }
+                else if (type == 1)
+                {
+                    var faceColors = new Array(3);
+                    faceColors[0] = new BABYLON.Color4(1,0,0,1);
+                    faceColors[1] = new BABYLON.Color4(1,0,0,1);
+                    faceColors[2] = new BABYLON.Color4(1,0,0,1);
+                    var newBullet = BABYLON.MeshBuilder.CreateCylinder("cyl",{height:0.5, faceColors:faceColors, sideOrientation:1},scene);
+                    newBullet.position.x = enemyPlane[index].position.x;
+                    newBullet.position.y = enemyPlane[index].position.y;
+                    newBullet.position.z = enemyPlane[index].position.z;
+                    enemyBullet[numOfEnemyBullets] = newBullet;
+                    var speedX = newBullet.position.x - myposition.x;
+                    var speedY = newBullet.position.y - myposition.y;
+                    var speedZ = newBullet.position.z - myposition.z;
+                    var distance = Math.sqrt(speedX * speedX + speedY * speedY + speedZ * speedZ);
+                    var newBulletSpeed = new BABYLON.Vector3(speedX / distance + Math.random(), speedY / distance + Math.random(), speedZ / distance + Math.random());
+                    enemyBulletSpeed[numOfEnemyBullets] = newBulletSpeed;
+                    numOfEnemyBullets++;
+                }
+            }
+            
+            function createEnemy(scene)
+            {
+                var enemy_test = BABYLON.MeshBuilder.CreateSphere("sphere",{diameter:2},scene);
+                enemy_test.position.y = enemy_test.x = 0;
+                enemy_test.position.z = 500;
+                enemyPlane[0] = enemy_test;
+                enemyHP[0] = 1;
+                var newEnemySpeed = new BABYLON.Vector3(0, 0, 0);
+                enemySpeed[numOfEnemy] = newEnemySpeed;
+                enemyTimer[numOfEnemy] = parseInt(100 * Math.random());
+                numOfEnemy++;
+            }
+            
+            function particleObject(meshObject, scene)
+            {
+                // Create a particle system
+                var particleSystem = new BABYLON.ParticleSystem("particles", 2000, scene);
+        
+                //Texture of each particle
+                particleSystem.particleTexture = new BABYLON.Texture("textures/flare.png", scene);
+        
+                // Where the particles come from
+                particleSystem.emitter = meshObject; // the starting object, the emitter
+                particleSystem.minEmitBox = new BABYLON.Vector3(-1, -1, -1); // Starting all from
+                particleSystem.maxEmitBox = new BABYLON.Vector3(1, 1, 1); // To...
+        
+                // Colors of all particles
+                particleSystem.color1 = new BABYLON.Color4(0.7, 0.8, 1.0, 1.0);
+                particleSystem.color2 = new BABYLON.Color4(0.2, 0.5, 1.0, 1.0);
+                particleSystem.colorDead = new BABYLON.Color4(0, 0, 0.2, 0.0);
+        
+                // Size of each particle (random between...
+                particleSystem.minSize = 0.1;
+                particleSystem.maxSize = 0.5;
+        
+                // Life time of each particle (random between...
+                particleSystem.minLifeTime = 0.3;
+                particleSystem.maxLifeTime = 1.5;
+        
+                // Emission rate
+                particleSystem.emitRate = 1500;
+        
+                // Blend mode : BLENDMODE_ONEONE, or BLENDMODE_STANDARD
+                particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+        
+                // Set the gravity of all particles
+                particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
+        
+                // Direction of each particle after it has been emitted
+                particleSystem.direction1 = new BABYLON.Vector3(-7, 8, 3);
+                particleSystem.direction2 = new BABYLON.Vector3(7, 8, -3);
+        
+                // Angular speed, in radians
+                particleSystem.minAngularSpeed = 0;
+                particleSystem.maxAngularSpeed = Math.PI;
+        
+                // Speed
+                particleSystem.minEmitPower = 1;
+                particleSystem.maxEmitPower = 3;
+                particleSystem.updateSpeed = 0.005;
+        
+                // Start the particle system
+                particleSystem.start();
+                
+                return particleSystem;
+            }
             
         });
     </script>
