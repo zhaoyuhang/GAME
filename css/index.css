@@ -2,7 +2,7 @@ div#game-title
 {
 	position:absolute;
 	top:15%;
-	left:31%;
+	left:28%;
 	text-align:center;
 	font-family:Futura, "Trebuchet MS", Arial, sans-serif;
 	font-size:800%
@@ -11,7 +11,7 @@ div#game-title
 div#easy
 {
 	position:absolute;
-	top:40%;
+	top:50%;
 	left:40%;
 	text-align:center;
 	font-family:Futura, "Trebuchet MS", Arial, sans-serif;
@@ -43,7 +43,7 @@ div#normal
 div#difficult
 {
 	position:absolute;
-	top:80%;
+	top:70%;
 	left:40%;
 	text-align:center;
 	font-family:Futura, "Trebuchet MS", Arial, sans-serif;
@@ -54,4 +54,24 @@ div#difficult
 	border-radius:25px;
 	-moz-border-radius:25px;
 	font-size:100%;
+}
+
+div#hp
+{
+	position:absolute;
+	bottom:0;
+	left:0;
+	font-family:Futura, "Trebuchet MS", Arial, sans-serif;
+	font-size:300%;
+	display:none;
+}
+
+div#planesLeft
+{
+	position:absolute;
+	bottom:0;
+	right:0;
+	font-family:Futura, "Trebuchet MS", Arial, sans-serif;
+	font-size:300%;
+	display:none;
 }

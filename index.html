@@ -46,19 +46,24 @@
         var elementTwo = document.getElementById("easy");
         var elementThree = document.getElementById("normal");
         var elementFour = document.getElementById("difficult");
+        var elementFive = document.getElementById("hp");
+        var elementSix = document.getElementById("planesLeft");
         elementOne.style.display = "none";
         elementTwo.style.display = "none";
         elementThree.style.display = "none";
         elementFour.style.display = "none";
+        elementFive.style.display = "block";
+        elementSix.style.display = "block";
         //加载模型方法
 
         var status =  difficulty;
         var times = 1;
+        var timesbullet = 30;
         //速度变化率
         var dspeed = 1;
         //速度
-        var speed = 1;
-        var hp = 100;
+        var speed = 2;
+       // var hp = 100;
         //旋转用flag
         var a_flag = 0;
         var b_flag = 0;
@@ -83,6 +88,7 @@
         var enemyBullet = new Array();
         var numOfEnemyBullets = 0;
         var enemyTimer = new Array();
+        var enemySpeedTimer = new Array();
         var enemyBulletSpeed = new Array();
        // var myPlanePosition = new Array(3);
         var particleSystemAlive = new Array();
@@ -122,7 +128,11 @@
                 //BABYLON.Scene.FOGMODE_LINEAR;
             
                 scene.fogColor = new BABYLON.Color3(0.9, 0.9, 0.85);
+                if(status == 3){
+                     scene.fogDensity = 0.001;
+                }else{
                 scene.fogDensity = 0;
+                }
 
                 // 天空的箱子（把相机处于一个大的箱子里面）
                 skybox = BABYLON.Mesh.CreateBox("skyBox", 6000.0, scene);
@@ -131,7 +141,13 @@
                 //背面效果
                 skyboxMaterial.backFaceCulling = false;
                 //反射的材质
+                if(status == 1){
                 skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/TropicalSunnyDay", scene);
+                }
+                else if (status == 2 || status ==3 ){
+                skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/skybox", scene);
+                }
+
                 //坐标模式-天空盒子
                 skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
                 skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
@@ -162,11 +178,17 @@
                 //fcamera.target = sphere_test; 
 
                 //创建敌人
-                createEnemy(scene);
+                createEnemy(status,scene);
                 
                 //场景刷新
+                var alpha = 0;
                 scene.registerBeforeRender(function(){
+                    if(status == 3){
+                   scene.fogDensity = 0.05 *Math.cos(alpha)/10;
                    
+                        alpha += 0.01;
+                    }
+
                     //飞机和摄像头的旋转
                     
                     a_flag +=  dspeed * (right_flag + left_flag) ;
@@ -211,10 +233,16 @@
                         enemyPlane[i].position.y += enemySpeed[i].y;
                         enemyPlane[i].position.z += enemySpeed[i].z;
                         enemyTimer[i]--;
+                        enemySpeedTimer[i]--;
                         if (enemyTimer[i] <= 0)
                         {
                             createBullet(1, i);
-                            enemyTimer[i] = parseInt(100 * Math.random());
+                            enemyTimer[i] = parseInt(200 * Math.random());
+                        }
+                        if (enemySpeedTimer[i] <= 0)
+                        {
+                            setSpeed(i, new BABYLON.Vector3(2 * Math.random() - 1, 2 * Math.random() - 1, 2 * Math.random() - 1));
+                            enemySpeedTimer[i] = parseInt(1000 * Math.random());
                         }
                     }
                     
@@ -253,7 +281,7 @@
                                 enemyHP[j]--;
                                 if (enemyHP[j] <= 0)
                                 {
-                                    particleSystemAlive[numOfAliveSystem] = particleObject(enemyPlane[j], scene);
+                                    particleSystemAlive[numOfAliveSystem] = particleObject(enemyPlane[j], scene , 1);
                                     particleTimer[numOfAliveSystem] = 20;
                                     enemyPlane[j].visibility = 0;
                                     console.log(enemyPlane[j]);
@@ -286,7 +314,17 @@
                         }
                         if (sphere_test.intersectsMesh(enemyBullet[i], false))
                         {
+                            if(timesbullet > 0 ){
+                                timesbullet --;
+                                break;
+                            }
+
                             hp -= 5;
+                            if (hp < 0)
+                            {
+                                hp = 0;
+                            }
+                            elementFive.innerText = "HP:" + hp;
                             enemyBullet[i].visibility = 0;
                             destroyBullet(1, i);
                         }
@@ -307,21 +345,28 @@
                                 console.log(sphere_test.position);
                                 console.log(enemyPlane[i].position);
                                 hp -= 100;
+                                if (hp < 0)
+                                {
+                                    hp = 0;
+                                }
+                                elementSix.innerText = "HP:" + hp;
                                 enemyPlane[i].visibility = 0;
                                 destroyEnemy(i);
                             }
                         }
                    }
                    
-                   if (hp <= 0)
+                   if ((status != 100) && (hp <= 0))
                    {
                         status = 100;
-                        particleSystemAlive[numOfAliveSystem] = particleObject(sphere_test, scene);
+                        particleSystemAlive[numOfAliveSystem] = particleObject(sphere_test, scene, 0);
                         particleTimer[numOfAliveSystem] = 20;
                         numOfAliveSystem++;
                         sphere_test.visibility = 0;
                         elementOne.innerText = "Game Over";
                         elementOne.style.display = "block";
+                        elementFive.style.display = "none";
+                        elementSix.style.display = "none";
                    }
                  });
                     //调试工具
@@ -462,7 +507,7 @@
                 }
             }
             
-            function destroyEnemy(index)
+           function destroyEnemy(index)
             {
                 for (var i = index + 1; i < numOfEnemy; i++)
                 {
@@ -471,6 +516,15 @@
                     enemyHP[i - 1] = enemyHP[i];
                 }
                 numOfEnemy--;
+                document.getElementById("planesLeft").innerText = "Planes left:" + numOfEnemy;
+                if (numOfEnemy == 0)
+                {
+                    elementOne.innerText = "You win";
+                    elementOne.style.display = "block";
+                    elementFive.style.display = "none";
+                    elementSix.style.display = "none";
+                    status = 100;
+                }
             }
             
             function destroyParticleSystem(index)
@@ -487,11 +541,12 @@
             {
                 if (type == 0)
                 {
-                    var faceColors = new Array(3);
-                    faceColors[0] = new BABYLON.Color4(1,1,0,1);
-                    faceColors[1] = new BABYLON.Color4(1,1,0,1);
-                    faceColors[2] = new BABYLON.Color4(1,1,0,1);
-                    var newBullet = BABYLON.MeshBuilder.CreateCylinder("cyl",{height:0.5, faceColors:faceColors, sideOrientation:1},scene);
+                    var newBullet = BABYLON.MeshBuilder.CreateSphere("sph", {diameter:0.8} , scene);
+                    var colorMat = new BABYLON.StandardMaterial("ground", scene);
+                    colorMat.diffuseColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+                    colorMat.specularColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+                    colorMat.emissiveColor = BABYLON.Color3.Blue();
+                    newBullet.material = colorMat;
                     newBullet.position.x = myposition.x;
                     newBullet.position.y = myposition.y;
                     newBullet.position.z = myposition.z;
@@ -502,11 +557,12 @@
                 }
                 else if (type == 1)
                 {
-                    var faceColors = new Array(3);
-                    faceColors[0] = new BABYLON.Color4(1,0,0,1);
-                    faceColors[1] = new BABYLON.Color4(1,0,0,1);
-                    faceColors[2] = new BABYLON.Color4(1,0,0,1);
-                    var newBullet = BABYLON.MeshBuilder.CreateCylinder("cyl",{height:0.5, faceColors:faceColors, sideOrientation:1},scene);
+                    var newBullet = BABYLON.MeshBuilder.CreateSphere("sph", {diameter:0.8} , scene);
+                    var colorMat = new BABYLON.StandardMaterial("ground", scene);
+                    colorMat.diffuseColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+                    colorMat.specularColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+                    colorMat.emissiveColor = BABYLON.Color3.Red();
+                    newBullet.material = colorMat;
                     newBullet.position.x = enemyPlane[index].position.x;
                     newBullet.position.y = enemyPlane[index].position.y;
                     newBullet.position.z = enemyPlane[index].position.z;
@@ -522,21 +578,66 @@
                 }
             }
             
-            function createEnemy(scene, x, y, z, hp)
-            {
-                var enemy_test = BABYLON.MeshBuilder.CreateSphere("sphere",{diameter:2},scene);
-                enemy_test.position.x = x;
-                enemy_test.position.y = y;
-                enemy_test.position.z = z;
+             function setSpeed(index , new_speed){
+                    enemySpeed[index] = new_speed;
+                }
+
+            function createSingleEnemy(scene,position,speed,hp,d,rare){
+                var enemy_test = BABYLON.MeshBuilder.CreateSphere("sphere",{diameter:d},scene);
+                enemy_test.position = position;
                 enemyPlane[numOfEnemy] = enemy_test;
                 enemyHP[numOfEnemy] = hp;
-                var newEnemySpeed = new BABYLON.Vector3(0, 0, 0);
-                enemySpeed[numOfEnemy] = newEnemySpeed;
-                enemyTimer[numOfEnemy] = parseInt(100 * Math.random());
+                //var newEnemySpeed = new BABYLON.Vector3(0, 0, 0);
+                enemySpeed[numOfEnemy] = speed;
+                enemyTimer[numOfEnemy] = parseInt(rare * Math.random());
                 numOfEnemy++;
+
+            }
+
+            function createEnemy(status,scene)
+            {
+                var temp = new BABYLON.Vector3(0,0,0);
+                switch(status){
+                    case 1:
+                       
+                        for(var i=0; i < 20;i++){
+                            var r1 = Math.random();
+                            var r2 = Math.random();
+                            var r3 = Math.random();
+                            createSingleEnemy(scene,new BABYLON.Vector3(100+500*r1,100+500*r2,100+500*r3),temp,status,10+20*r1,15+10*r1-10*r2+10*r3);
+                         }
+                         document.getElementById("planesLeft").innerText = "Planes Left:" + numOfEnemy;
+                      
+                    break;
+                    case 2:
+                        for(var i=0; i < 20;i++){
+                            var r1 = Math.random();
+                            var r2 = Math.random();
+                            var r3 = Math.random();
+                            createSingleEnemy(scene,new BABYLON.Vector3(100+500*r1,100+500*r2,100+500*r3),temp,status,10+20*r1,15+10*r1-10*r2+10*r3);
+                            enemySpeedTimer[numOfEnemy - 1] = parseInt(10 * Math.random());
+                         }
+                         document.getElementById("planesLeft").innerText = "Planes Left:" + numOfEnemy;
+
+
+                    break;
+                    case 3:
+                        for(var i=0; i < 20;i++){
+                            var r1 = Math.random();
+                            var r2 = Math.random();
+                            var r3 = Math.random();
+                            createSingleEnemy(scene,new BABYLON.Vector3(100+500*r1,100+500*r2,100+500*r3),temp,status,10+20*r1,15+10*r1-10*r2+10*r3);
+                            enemySpeedTimer[numOfEnemy - 1] = parseInt(10 * Math.random());
+                         }
+                         document.getElementById("planesLeft").innerText = "Planes Left:" + numOfEnemy;
+
+                    break;
+                    default:break;
+                }
+               
             }
             
-            function particleObject(meshObject, scene)
+            function particleObject(meshObject,scene,type)
             {
                 // Create a particle system
                 var particleSystem = new BABYLON.ParticleSystem("particles", 2000, scene);
@@ -546,8 +647,17 @@
         
                 // Where the particles come from
                 particleSystem.emitter = meshObject; // the starting object, the emitter
-                particleSystem.minEmitBox = new BABYLON.Vector3(-1, -1, -1); // Starting all from
-                particleSystem.maxEmitBox = new BABYLON.Vector3(1, 1, 1); // To...
+                 if (type == 0)
+                {
+                    particleSystem.minEmitBox = new BABYLON.Vector3(-1, -1, -1); // Starting all from
+                    particleSystem.maxEmitBox = new BABYLON.Vector3(1, 1, 1); // To...
+                }
+                else
+                {
+                    particleSystem.minEmitBox = new BABYLON.Vector3(-20, -20, -20); // Starting all from
+                    particleSystem.maxEmitBox = new BABYLON.Vector3(20, 20, 20); // To...
+                }
+        
         
                 // Colors of all particles
                 particleSystem.color1 = new BABYLON.Color4(0.7, 0.8, 1.0, 1.0);
@@ -593,9 +703,11 @@
         //});
     }
     </script>
-    <div id="game-title">MegaPlane</div>
+    <div id="game-title">The Wind</div>
     <div id="easy" onclick="start(1)">Easy</div>
     <div id="normal" onclick="start(2)">Normal</div>
     <div id="difficult" onclick="start(3)">Difficult</div>
+    <div id="hp">HP:100</div>
+    <div id="planesLeft">Planes Left:10</div>
 </body>
 </html>
