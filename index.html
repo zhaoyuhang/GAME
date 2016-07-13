@@ -62,7 +62,7 @@
         //速度变化率
         var dspeed = 1;
         //速度
-        var speed = 2;
+        var speed = 1;
        // var hp = 100;
         //旋转用flag
         var a_flag = 0;
@@ -71,6 +71,9 @@
         var up_flag = 0;
         var left_flag = 0;
         var right_flag = 0;
+        var speed_up_flag = 0;
+        var speed_down_flag = 0;
+
         //子弹消失判定
         var maxX = 10000;
         var maxY = 10000;
@@ -196,6 +199,10 @@
                     b_flag += dspeed * (down_flag + up_flag);
                     if(b_flag == -36){b_flag++;}
 
+                    speed = speed + 0.5*(speed_up_flag - speed_down_flag);
+                    if(speed > 8 ) speed = 8;
+                    if(speed < 1 ) speed = 1;
+                    
                     sphere_test.rotation = new BABYLON.Vector3(
                        0,
                         a_flag * Math.PI/180 ,
@@ -406,7 +413,15 @@
                               break;
                           case "S":
                             down_flag = 0;
-                            
+                    
+                              break;
+                        case "U":
+                            speed_up_flag = 0;
+                    
+                              break;
+                         case "I":
+                            speed_down_flag = 0;
+                    
                               break;
                         default:break;
                 }
@@ -463,6 +478,7 @@
                     console.log(v);
                     console.log(a_flag);
                     console.log(b_flag);
+                    console.log(speed);
 
                 //cube01.position.y -= 1;
                   break;
@@ -470,14 +486,14 @@
                 //cube01.position.y -= 1;
                 console.log("speed up");
                 if(speed < 8)
-                    speed +=  0.5; 
+                    speed_up_flag = 1; 
                 console.log(speed);
                   break;
               case "I":
                 //cube01.position.y -= 1;
                 console.log("speed down");
                 if(speed > 1)
-                    speed -=  0.5; 
+                    speed_down_flag =  1; 
                 console.log(speed); 
                   break;
               default:
@@ -610,7 +626,7 @@
                       
                     break;
                     case 2:
-                        for(var i=0; i < 20;i++){
+                        for(var i=0; i < 100;i++){
                             var r1 = Math.random();
                             var r2 = Math.random();
                             var r3 = Math.random();
